@@ -1,0 +1,2 @@
+Стирание типов: (void*) reinterpret_cast<void*>(bar);
+Оно так же присутствует в std::functions, std::any, std::variants, std::string_view и там где используется полиморфизм. Стирание типов ещё называется type erasure
