@@ -3,6 +3,7 @@
 ---
 # Оглавление
 [[#Уровни сетевой коммуникации]]
+[[#URL, URN, URI]]
 
 ---
 # Уровни сетевой коммуникации
@@ -25,3 +26,7 @@ flowchart TD
 	a6 --> a7["Application Layer"]
 
 ```
+
+---
+# URL, URN, URI
+https://alekseev74.ru/lessons/show/http/uri-url-urn
