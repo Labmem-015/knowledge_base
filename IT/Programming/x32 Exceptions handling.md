@@ -1,12 +1,17 @@
 # Вопросы
-1) Как вызвать код, внутри блока `__except`?
-2) Как вызвать код после блока `__except`?
-3) Почему сигнатура выражения-фильтра отличается от сигнатуры callback-функции обработчика исключений?
-4) Как выражение-фильтр вызывается операционной системой?
+1) ~~Как вызвать код, внутри блока `__except`?~~
+2) ~~Как вызвать код после блока `__except`?~~
+3) ~~Почему сигнатура выражения-фильтра отличается от сигнатуры callback-функции обработчика исключений?~~
+4) ~~Как выражение-фильтр вызывается операционной системой?~~
 5) Как выглядит структура `_ThrowInfo`, которую нужно подать в `__CxxThrowException`
+6) Почему при использовании try-catch мы имеем разные обработчики в exception registration?
+7) Как получить доступ к funcinfo изнутри обработчика?
+8) Как вызвать деструкторы объектов в try блоке (unwinding)?
+9) Как вызвать catch-блок?
+10) Как работает state?
 
 # Возможные ответы
-1) Вызывается lpfnHandler из `scopetable` 
+1) Вызывается `lpfnHandler` из `scopetable` 
 2) С помощью сохранённого ESP
 3) Потому, что они имеют разное предназначение и фильтр вызывается из callback-функции `__except_handler3` по указателю в `scopetable`
 4) Не вызывается. Вызывается callback-функция, а из неё выражение-фильтр. Все указатели на обработчики в связном списке `EXCEPTION_REGISTRATION` указывает на одну и ту же функцию, которая в RTL определена как `__except_handler3`.
@@ -15,16 +20,28 @@
 * [[#CRT (Documentation) Frontier]]
 	* [[#ThrowInfo]]
 * [[#Reverse Engineering Frontier]]
-* [[#Assembly language frontier]]
+	* [[#x32 reversing]]
+	* [[#x64 reversing]]
+* [[#KTL research frontier]]
 	* [[#Martin Vejnar's capture.asm file]]
+	* [[#throw.hpp and throw.cpp]]
 	* [[#Общие сведения об ассемблере]]
 * [[#Structured Exception Handling (C/C++) Frontier]]
-	* [[#Список структур с указателями на обработчиков исключений]]
-	* [[#Обработчик исключений]]
+	* [[#EXCEPTION_REGISTRATION Список структур с указателями на обработчиков исключений]]
+	* [[#__CxxFrameHandler3 Обработчик исключений]]
 	* [[#Win32 API функции для SEH]]
 	* [[#Функлеты и реализация исключений в Microsoft]]
-* [[#SEH в Visual C++]]
+* [[#SEH в Visual C]]
 	* [[#Расширенный фрейм обработки исключений]]
+	* [[#SCOPETABLE]]
+	* [[#EXCEPTION_POINTERS]]
+	* [[#Раскрутка]]
+	* [[#Защита от переполнения]]
+* [[#VC ++ Exceptions]]
+	* [[#FUNCINFO структура]]
+* [[#x86 CPU Context]]
+* [[#x64 CPU Context]]
+* [[#Источники]]
 # CRT (Documentation) Frontier
 [Анатомия C Run-Time, или Как сделать программу немного меньшего размера](https://rsdn.org/article/cpp/crt.xml)
 Использование механизмов обработки исключений и RTTI (Run-Time Type Information) требует инициализации в стартовом коде CRT.
@@ -64,8 +81,14 @@ typedef const struct _s_ThrowInfo {
 
 Bruh
 
+## x32 reversing
+Я заметил, что в C++ исключениях в exception registration отличаются обработчики на каждом узле.
+## x64 reversing
+
+
+
 ---
-# Assembly language frontier
+# KTL research frontier
 ## Martin Vejnar's capture.asm file:
 У нас есть 4 функции, которые мы должны реализовать:
 `__cxx_dispatch_exception`
@@ -91,6 +114,10 @@ catch_info_t ends
 В этой реализации мы храним только одну копию контекста во время разматывания, причём только его неизменную часть. Как только мы находим обработчик, мы освобождаем контекст из стека. Процесс разматывания осуществляется в один проход, без использования локального хранилища потока.
 
 По сравнению с SEH, реализация запрещает совмещение C++ исключений и SEH исключений. Также We do not support throwing across module boundaries. Ещё дебагер ничего не увидит. Ну и ещё если вызывается исключение при копирование объекта исключения, то мы нарушаем стандарт и позволяем исключениями распространяться дальше, не вызывая std::terminate.
+
+## `throw.hpp and throw.cpp`
+
+
 ## Общие сведения об ассемблере
 Адрес растёт вверх. Стек растёт вниз. База стека находится на старших адресах. Вершина стека на нижних адресах.
 `qword` - (quad word) означает 8-ми байтовое слово.
@@ -139,9 +166,9 @@ __finally
   // termination handler block
 }
 ```
-## Список структур с указателями на обработчиков исключений
+## `EXCEPTION_REGISTRATION` Список структур с указателями на обработчиков исключений
 Чтобы использовать своё исключение, его надо зарегистрировать. Создаём структуру с указателем на обработчик событий и предыдущую такую же структуру. Таким образом можно создавать цепочку обработчиков. Адрес последней структуры с актуальным обработчиком доступен через регистр `FS:[0]`. Вызов обработчиков мы начинаем с начала списка, пока кто-либо не вернёт значение `ExceptionContinueExecution(0)`.  Конец списка находится наверху на старших адресах. Для последнего элемента в списке, `prev` будет указывать на 0xFFFFFFFF.
-```
+```cpp
 struct MY_EXCEPTION_REGISTRATION {
 	MY_EXCEPTION_REGISTRATION* prev;
 	DWORD handler;
@@ -154,9 +181,9 @@ struct MY_EXCEPTION_REGISTRATION {
 
 Эта структура соотносится с блоком `__try` и говорят, что код внутри блока `__try` защищён структурой `EXCEPTION_REGISTRATION`.
 
-## Обработчик исключений
+## __CxxFrameHandler3 Обработчик исключений
 Сам обработчик событий представлен call-back функцией. Он не должен располагаться в стеке потока, который вызвал исключение. Обработчик имеет следующую сигнатуру из `excpt.h`:
-```
+```cpp
 _VCRTIMP EXCEPTION_DISPOSITION __cdecl __C_specific_handler(
 	_In_    struct _EXCEPTION_RECORD*   ExceptionRecord,
 	_In_    void*                       EstablisherFrame,
@@ -187,12 +214,16 @@ _VCRTIMP EXCEPTION_DISPOSITION __cdecl __C_specific_handler(
 
 Код выражения-фильтра вызывается из callback-функции `__except_handler3`. Код выражения-фильтра не вызывается из операционной системы. Все поля exception handler в списке обработчиков указывает на одну и ту же функцию, которая в RTL определена как `__except_handler3`.
 
+## Возможная реализация `__except_handler3`
+Ветвление на режим размотки и режим обработки.
+Режим обработки. Сохраняем значения из аргумента функции в расширенный SEH фрейм. Затем производим обход всех SEH фреймов (всех функций содержащих блок обработки исключений try-except), а также всех scopetable в пределах каждой функции
+
 ## Win32 API функции для SEH
-* `GetExceptionCode()` - возвращает код, идентифицирующий исключение. Может быть вызван только из `filter_expression` или `exception handler block`
-* `GetExceptionInformation()` - возвращает указатель на `ExceptionRecord` и указатель на структуру контекста исключения. Вызывается только из `filter_expression`
+* `GetExceptionCode()` - интринсик, который возвращает код, идентифицирующий исключение. Может быть вызван только из `filter_expression` или `exception handler block`
+* `GetExceptionInformation()` - интринсик, который возвращает указатель на `ExceptionRecord` и указатель на структуру контекста исключения. Вызывается только из `filter_expression`
 * `AbnormalTermination()` - указывает, завершился ли try-блок обработчика завершения нормально. Может быть вызван только из обработчика завершения.
 * `RaiseException()` - генерирует исключение в вызываемом потоке (синхронное программное исключение)
-
+`_CxxThrowException` передаёт управление операционной системе через программное прерывание (см. `RaiseException`). Её аргументы передаются заносятся в `EXCEPTION_RECORD`.
 ## Функлеты и реализация исключений в Microsoft
 Функлет - это кусок кода, который мы можем вызвать, и который создаёт свой кадр стека. При компиляции для каждой функции создаётся первичный функлет и catch-функлеты. Чтобы catch-блок функлеты имели доступ к скопу функции, где блок сам и находится, мы в кадре стека каждого catch функлета добавляем указатель на кадр стека первичного функлета, где располагаются все переменные функции. Этот указатель на AMD64 передаётся в catch функлет через регистр rdx. Microsoft передаёт указатель на сам функлет через второй аргумент, а именно регистр rcx. Объект исключения живёт в кадре первичного функлета.
 
@@ -202,7 +233,7 @@ _VCRTIMP EXCEPTION_DISPOSITION __cdecl __C_specific_handler(
 
 Зарегистрированный нами обработчик вызывается операционной системой по обращению к регистру `FS:[0]`. Обработчик возвращает значение, по которому ОС решает, как действовать дальше.
 
-# SEH в Visual C++
+# SEH в Visual C
 Нас надули! ОБМАНУЛИ! 
 > Другое искажение, сделанное мной для облегчения восприятия, заключается в том, что структура **`EXCEPTION_REGISTRATION`** не создаётся и не разрушается каждый раз при входе и выходе из любого **`_try`**-блока. Вместо этого, в каждой функции использующей **`SEH`** создается только один **`EXCEPTION_REGISTRATION`**. Другими словами, вы можете иметь множество **`_try/_except`** конструкций в одной функции, но в стеке будет создан только один **`EXCEPTION_REGISTRATION`**. Аналогично, вы могли бы сделать в функции вложенные блоки **`_try`**. Однако, при этом, **`Visual C++`** создаст только один **`EXCEPTION_REGISTRATION`**. Но это всё в рамках одной функции. В цепочке вызовов функций, `EXCEPTION_REGISTRATION` столько же, сколько  вызовов этих функций.
 > 
@@ -219,7 +250,6 @@ struct _EXCEPTION_REGISTRATION{
     struct scopetable_entry *scopetable;
     int trylevel;
     int _ebp;
-    PEXCEPTION_POINTERS xpointers;
 };
 ```
 После `EXCEPTION_REGISTRATION` в стек кладётся `DWORD` указатель на `EXCEPTION_POINTERS`. Мы можем получить её с помощью `GetExceptionInformation`, которая раскрывается компилятором в : `MOV EAX,DWORD PTR [EBP-14]`. Аналогично и с `GetExeptionCode`, которая находит и возвращает значение поля, принадлежащего одной из структур данных, возвращённых `GetExceptionInformation`. Короче он возвращает первое поле структуры `_EXCEPTION_RECORD`, а именно `ExceptionCode`.
@@ -236,7 +266,7 @@ struct _EXCEPTION_REGISTRATION{
 >  EBP-18 Обычное значение регистра `ESP` в фрейме
 
 С точки зрения ОС, существуют только два поля, из которых состоит базовая структура **`EXCEPTION_REGISTRATION`**: указатель `prev` в **`[EBP-10]`** и указатель функцию обработчика в **`[EBP-0Ch]`**. Остальное содержимое фрейма является специфическим расширением **`Visual C++`**.
-
+## `SCOPETABLE`
 ```cpp
 typedef struct _SCOPETABLE
  {
@@ -245,6 +275,312 @@ typedef struct _SCOPETABLE
      DWORD       lpfnHandler;   // _except-обработчик
 } SCOPETABLE, *PSCOPETABLE;
 ```
+## `EXCEPTION_POINTERS`
+```cpp
+typedef struct _EXCEPTION_POINTERS {
+	PEXCEPTION_RECORD ExceptionRecord;
+	PCONTEXT ContextRecord;
+} EXCEPTION_POINTERS, *PEXCEPTION_POINTERS;
+
+// Exception info
+typedef struct _EXCEPTION_RECORD {
+  DWORD                    ExceptionCode;
+  DWORD                    ExceptionFlags;
+  struct _EXCEPTION_RECORD *ExceptionRecord;
+  PVOID                    ExceptionAddress;
+  DWORD                    NumberParameters;
+  ULONG_PTR                ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS];
+} EXCEPTION_RECORD;
+
+// All registers
+typedef struct _CONTEXT {
+  DWORD64 P1Home;
+  DWORD64 P2Home;
+  // ...
+  DWORD64 Rax;
+  DWORD64 Rcx;
+  DWORD64 Rdx;
+  DWORD64 Rbx;
+  DWORD64 Rsp;
+  DWORD64 Rbp;
+  // ...
+} CONTEXT, *PCONTEXT;
+```
+
+## Раскрутка
+
+## Защита от переполнения
+`GSCookieOffset` = -2 означает, что GS cookie не используется. EH cookie всегда присутствует. Смещения являются относительными к `ebp`. Проверка выполняется следующим образом: `(ebp + CookieXOROffset ) ^ [ebp + CookieOffset] == ​​_security_cookie`. Указатель на `scopetable` в стеке также подвергается операции XOR с `_security_cookie`. Кроме того, в SEH4 самый внешний уровень области действия равен -2, а не -1, как в SEH3
+[Источник](https://www.openrce.org/articles/full_view/21)
+
+# VC ++ Exceptions
+![[Pasted image 20250305182726.png]]
+У нас такая структура в vc++:
+```cpp
+struct vc_ExceptionRegistration {
+	void* stack_pointer;
+	ExceptionRegistration* registration;
+	int state;    // use it to determine, which try block to search
+};
+```
+Операторы `throw` преобразуются в вызовы `_CxxThrowException()`, которые фактически вызывают исключение Win32 (SEH) с кодом `0xE06D7363` `('msc'|0xE0000000)`. Пользовательские параметры исключения Win32 включают указатели на объект исключения и его структуру `ThrowInfo`, используя которые обработчик исключений может сопоставить тип выданного исключения с типами, ожидаемыми обработчиками catch.
+## `FUNCINFO` структура
+Где находится funcinfo?
+```cpp
+struct funcinfo{
+	DWORD magic_signature;
+	DWORD unwind_entries_num;
+	void* unwind_table;       // array
+	DWORD tryblock_num;
+	void* tryblock_table;     // array
+};
+
+struct UnwindTableEntry {
+	unsigned long to_state;     // target state
+	void* action;               // action to perform (unwind funclet address)
+};
+
+struct tryblock_table {
+	// states ranging from tryLow to tryHigh
+	DWORD start_id;  // tryLow
+	DWORD end_id;    // tryHigh
+	DWORD catchblock_index;  // highes state inside catch handlers of this try
+	DWORD catchblock_num;
+	void* catchblock_table;   // array
+};
+
+struct catchblock {
+	BOOL copy_exception_by_val_or_ref;
+	void* type_info;
+	DWORD offset;
+	void* catchblock_addr;
+};
+```
+`offset` в `catchblock` указывает на отступ от `frame_pointer` кадра catch-блока, куда мы должны скопировать исключение (по значению или ссылке).
+Мы ищем нужное нам вхождение массива `tryblock_table`, используя значение `state`, переданное нам из `vc_ExceptionRegistration`. Если оно равно или находится в диапазоне `start_id` и `end_id`.
+Компилятор в момент вхождения в блок try помещает в функцию инструкцию, которая записывает в кадр стека значение `start_id`.
+## `ThrowInfo` и `type_info`
+В `EXCEPTION_RECORD` хранится указатель на `ThrowInfo`, которую можно сравнить с `type_info` в `catchblock`.
+
+# x86 CPU Context
+```cpp
+struct CONTEXT {
+    //
+    // The flags values within this flag control the contents of
+    // a CONTEXT record.
+    //
+    // If the context record is used as an input parameter, then
+    // for each portion of the context record controlled by a flag
+    // whose value is set, it is assumed that that portion of the
+    // context record contains valid context. If the context record
+    // is being used to modify a threads context, then only that
+    // portion of the threads context will be modified.
+    //
+    // If the context record is used as an IN OUT parameter to capture
+    // the context of a thread, then only those portions of the thread's
+    // context corresponding to set flags will be returned.
+    //
+    // The context record is never used as an OUT only parameter.
+    //
+
+    DWORD ContextFlags;
+
+    //
+    // This section is specified/returned if CONTEXT_DEBUG_REGISTERS is
+    // set in ContextFlags.  Note that CONTEXT_DEBUG_REGISTERS is NOT
+    // included in CONTEXT_FULL.
+    //
+
+    DWORD   Dr0;
+    DWORD   Dr1;
+    DWORD   Dr2;
+    DWORD   Dr3;
+    DWORD   Dr6;
+    DWORD   Dr7;
+
+    //
+    // This section is specified/returned if the
+    // ContextFlags word contians the flag CONTEXT_FLOATING_POINT.
+    //
+
+    FLOATING_SAVE_AREA FloatSave;
+
+    //
+    // This section is specified/returned if the
+    // ContextFlags word contians the flag CONTEXT_SEGMENTS.
+    //
+
+    DWORD   SegGs;
+    DWORD   SegFs;
+    DWORD   SegEs;
+    DWORD   SegDs;
+
+    //
+    // This section is specified/returned if the
+    // ContextFlags word contians the flag CONTEXT_INTEGER.
+    //
+
+    DWORD   Edi;
+    DWORD   Esi;
+    DWORD   Ebx;
+    DWORD   Edx;
+    DWORD   Ecx;
+    DWORD   Eax;
+
+    //
+    // This section is specified/returned if the
+    // ContextFlags word contians the flag CONTEXT_CONTROL.
+    //
+
+    DWORD   Ebp;
+    DWORD   Eip;
+    DWORD   SegCs;              // MUST BE SANITIZED
+    DWORD   EFlags;             // MUST BE SANITIZED
+    DWORD   Esp;
+    DWORD   SegSs;
+
+    //
+    // This section is specified/returned if the ContextFlags word
+    // contains the flag CONTEXT_EXTENDED_REGISTERS.
+    // The format and contexts are processor specific
+    //
+
+    BYTE    ExtendedRegisters[MAXIMUM_SUPPORTED_EXTENSION];
+}
+```
+
+# x64 CPU Context
+```cpp
+struct CONTEXT {
+    //
+    // Register parameter home addresses.
+    //
+    // N.B. These fields are for convience - they could be used to extend the
+    //      context record in the future.
+    //
+
+    DWORD64 P1Home;
+    DWORD64 P2Home;
+    DWORD64 P3Home;
+    DWORD64 P4Home;
+    DWORD64 P5Home;
+    DWORD64 P6Home;
+
+    //
+    // Control flags.
+    //
+
+    DWORD ContextFlags;
+    DWORD MxCsr;
+
+    //
+    // Segment Registers and processor flags.
+    //
+
+    WORD   SegCs;
+    WORD   SegDs;
+    WORD   SegEs;
+    WORD   SegFs;
+    WORD   SegGs;
+    WORD   SegSs;
+    DWORD EFlags;
+
+    //
+    // Debug registers
+    //
+
+    DWORD64 Dr0;
+    DWORD64 Dr1;
+    DWORD64 Dr2;
+    DWORD64 Dr3;
+    DWORD64 Dr6;
+    DWORD64 Dr7;
+
+    //
+    // Integer registers.
+    //
+
+    DWORD64 Rax;
+    DWORD64 Rcx;
+    DWORD64 Rdx;
+    DWORD64 Rbx;
+    DWORD64 Rsp;
+    DWORD64 Rbp;
+    DWORD64 Rsi;
+    DWORD64 Rdi;
+    DWORD64 R8;
+    DWORD64 R9;
+    DWORD64 R10;
+    DWORD64 R11;
+    DWORD64 R12;
+    DWORD64 R13;
+    DWORD64 R14;
+    DWORD64 R15;
+
+    //
+    // Program counter.
+    //
+
+    DWORD64 Rip;
+
+    //
+    // Floating point state.
+    //
+
+    union {
+        XMM_SAVE_AREA32 FltSave;
+        struct {
+            M128A Header[2];
+            M128A Legacy[8];
+            M128A Xmm0;
+            M128A Xmm1;
+            M128A Xmm2;
+            M128A Xmm3;
+            M128A Xmm4;
+            M128A Xmm5;
+            M128A Xmm6;
+            M128A Xmm7;
+            M128A Xmm8;
+            M128A Xmm9;
+            M128A Xmm10;
+            M128A Xmm11;
+            M128A Xmm12;
+            M128A Xmm13;
+            M128A Xmm14;
+            M128A Xmm15;
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
+
+    //
+    // Vector registers.
+    //
+
+    M128A VectorRegister[26];
+    DWORD64 VectorControl;
+
+    //
+    // Special debug control registers.
+    //
+
+    DWORD64 DebugControl;
+    DWORD64 LastBranchToRip;
+    DWORD64 LastBranchFromRip;
+    DWORD64 LastExceptionToRip;
+    DWORD64 LastExceptionFromRip;
+}
+```
+
+---
+# Источники
+[Видео с CppCon про размотку стека в механизме исключений](https://youtu.be/COEv2kq_Ht8?si=PwXzUZCQI7o6-hPY)
+[Презентация к видео CppCon](https://github.com/CppCon/CppCon2018/blob/master/Presentations/unwinding_the_stack_exploring_how_cpp_exceptions_work_on_windows/unwinding_the_stack_exploring_how_cpp_exceptions_work_on_windows__james_mcnellis__cppcon_2018.pdf)
+[Красивые схемы кадров стека](https://www.openrce.org/articles/full_view/21)
+[SEH и C++ Exceptions на английском](https://www.codeproject.com/KB/cpp/exceptionhandler.aspx)
+[Win32 SEH изнутри](https://qxov.narod.ru/articles/seh/seh.html)
+[Про SEH на MSDN](https://learn.microsoft.com/en-us/cpp/cpp/structured-exception-handling-c-cpp?view=msvc-170)
+[Про SEH из Руководства по YASM (см. главы 15.2 и 16.2)](https://www.tortall.net/projects/yasm/manual/html/index.html)
+[О передаче управления при вызове исключения](https://habr.com/ru/articles/267771/).
+[(Немного про CRT) Анатомия C Run-Time, или Как сделать программу немного меньшего размера](https://rsdn.org/article/cpp/crt.xml)
 
 ---
 Throw
@@ -254,3 +590,9 @@ destory
 unwind
 frame handler
 catch frame handler
+
+
+`throw` => `RaiseException`
+`try`/`catch` => `__try`/`__except`
+Local variable destruction => `__try`/`__finally`
+`_CxxFrameHandler` => `_except_handler3`
