@@ -3,18 +3,27 @@
 2) ~~Как вызвать код после блока `__except`?~~
 3) ~~Почему сигнатура выражения-фильтра отличается от сигнатуры callback-функции обработчика исключений?~~
 4) ~~Как выражение-фильтр вызывается операционной системой?~~
-5) Как выглядит структура `_ThrowInfo`, которую нужно подать в `__CxxThrowException`
-6) Почему при использовании try-catch мы имеем разные обработчики в exception registration?
-7) Как получить доступ к funcinfo изнутри обработчика?
+5) ~~Как выглядит структура `_ThrowInfo`, которую нужно подать в `__CxxThrowException`~~
+6) ~~Почему при использовании try-catch мы имеем разные обработчики в exception registration?~~
+7) ~~Как получить доступ к funcinfo изнутри обработчика помимо обращения к регистру eax?~~
 8) Как вызвать деструкторы объектов в try блоке (unwinding)?
 9) Как вызвать catch-блок?
 10) Как работает state?
-
+11) Как заменить `dispatch_context`?
+	1) Что делает атрибут `frame` в директиве `proc`? И что делает аргумент этого атрибута?
 # Возможные ответы
 1) Вызывается `lpfnHandler` из `scopetable` 
 2) С помощью сохранённого ESP
 3) Потому, что они имеют разное предназначение и фильтр вызывается из callback-функции `__except_handler3` по указателю в `scopetable`
 4) Не вызывается. Вызывается callback-функция, а из неё выражение-фильтр. Все указатели на обработчики в связном списке `EXCEPTION_REGISTRATION` указывает на одну и ту же функцию, которая в RTL определена как `__except_handler3`.
+5) Описание структуры см. далее
+6) Возможно он генерит доп код, где передаёт разные экземпляры funcinfo в `__CxxFrameHandler3`
+7) Видимо никак.
+8) ва
+9) ыва 
+10) ыва
+11) ыва
+12) 
 
 # Оглавление
 * [[#CRT (Documentation) Frontier]]
@@ -25,6 +34,7 @@
 * [[#KTL research frontier]]
 	* [[#Martin Vejnar's capture.asm file]]
 	* [[#throw.hpp and throw.cpp]]
+	* [[#frame_handlers]]
 	* [[#Общие сведения об ассемблере]]
 * [[#Structured Exception Handling (C/C++) Frontier]]
 	* [[#EXCEPTION_REGISTRATION Список структур с указателями на обработчиков исключений]]
@@ -39,8 +49,10 @@
 	* [[#Защита от переполнения]]
 * [[#VC ++ Exceptions]]
 	* [[#FUNCINFO структура]]
-* [[#x86 CPU Context]]
-* [[#x64 CPU Context]]
+* [[#CONTEXT and DISPATCH_CONTEXT]]
+	* [[#x86 CPU Context]]
+	* [[#x64 CPU Context]]
+	* [[#x64 DISPATCHER_CONTEXT]]
 * [[#Источники]]
 # CRT (Documentation) Frontier
 [Анатомия C Run-Time, или Как сделать программу немного меньшего размера](https://rsdn.org/article/cpp/crt.xml)
@@ -84,8 +96,7 @@ Bruh
 ## x32 reversing
 Я заметил, что в C++ исключениях в exception registration отличаются обработчики на каждом узле.
 ## x64 reversing
-
-
+Context Frame используется для создания фрейма для доставки вызова асинхронного вызова процедуры (APC). 
 
 ---
 # KTL research frontier
@@ -116,6 +127,9 @@ catch_info_t ends
 По сравнению с SEH, реализация запрещает совмещение C++ исключений и SEH исключений. Также We do not support throwing across module boundaries. Ещё дебагер ничего не увидит. Ну и ещё если вызывается исключение при копирование объекта исключения, то мы нарушаем стандарт и позволяем исключениями распространяться дальше, не вызывая std::terminate.
 
 ## `throw.hpp and throw.cpp`
+
+## `frame_handlers`
+`DISPATCH_CONTEXT`, там юзается `image_base`, `fn->unwind_info.value()`, `cookie`, `throw_frame`, `pdata->image_base`, `extra_data`, `fn->begin`, `pdata`, `handler`, `fn`.
 
 
 ## Общие сведения об ассемблере
@@ -357,12 +371,17 @@ struct catchblock {
 };
 ```
 `offset` в `catchblock` указывает на отступ от `frame_pointer` кадра catch-блока, куда мы должны скопировать исключение (по значению или ссылке).
-Мы ищем нужное нам вхождение массива `tryblock_table`, используя значение `state`, переданное нам из `vc_ExceptionRegistration`. Если оно равно или находится в диапазоне `start_id` и `end_id`.
-Компилятор в момент вхождения в блок try помещает в функцию инструкцию, которая записывает в кадр стека значение `start_id`.
+Мы ищем нужное нам вхождение массива `tryblock_table`, используя значение `state`, переданное нам из `vc_ExceptionRegistration`. Если оно равно или находится в диапазоне `start_id` и `end_id`. (ох если бы...)
+Компилятор в момент вхождения в блок try помещает в функцию инструкцию, которая записывает в кадр стека значение `start_id`. (как это всё-таки работает?!)
+Я выяснил, что `state` в `EXCEPTINO_REGISTRATION` - соответствует текущему индексу блока, в котором исключение было вызвано. В подсчёт индекса входят предшествующие вхождения try-catch. Не понимаю, чем является `start_id` и `end_id` , почему-то они одинаковые и коррелируют с максимальной глубиной try-блоков.
 ## `ThrowInfo` и `type_info`
 В `EXCEPTION_RECORD` хранится указатель на `ThrowInfo`, которую можно сравнить с `type_info` в `catchblock`.
 
-# x86 CPU Context
+# `CONTEXT` and `DISPATCH_CONTEXT`
+> [!DeepSeek's answer]
+> `CONTEXT` - хранит полное состояние процессора (регистры) на момент возникновения исключения или прерывания.
+> `DISPATCH_CONTEXT` - содержит метаданные для раскрутки стека и поиска подходящего обработчика исключений в цепочке SEH. Используется системой для управления процессом диспетчеризации исключений. В частности, можно получить funcinfo через handler_data
+## x86 CPU Context
 ```cpp
 struct CONTEXT {
     //
@@ -449,7 +468,7 @@ struct CONTEXT {
 }
 ```
 
-# x64 CPU Context
+## x64 CPU Context
 ```cpp
 struct CONTEXT {
     //
@@ -571,6 +590,25 @@ struct CONTEXT {
 ```
 
 ---
+## x64 `DISPATCHER_CONTEXT`
+> [!Attention!]
+> Сама структура взята из `<winnt.h>`, но комментарии добавлены нейросетью DeepSeek
+```cpp
+struct DISPATCHER_CONTEXT {
+    DWORD64 ControlPc;    // Адрес возникновения исключения
+    DWORD64 ImageBase;    // Базовый адрес модуля (exe/dll)
+    PRUNTIME_FUNCTION FunctionEntry;   // Данные о функции (PDB, unwind-информация)
+    DWORD64 EstablisherFrame; // Указатель на фрейм обработчика 
+                              // (EXCEPTION_REGISTRATION?)
+    DWORD64 TargetIp;     // Целевой IP для продолжения выполнения
+    PCONTEXT ContextRecord;   // Ссылка на структуру CONTEXT
+    PEXCEPTION_ROUTINE LanguageHandler;
+    PVOID HandlerData;     
+    struct _UNWIND_HISTORY_TABLE *HistoryTable;
+    DWORD ScopeIndex;
+    DWORD Fill0;
+};
+```
 # Источники
 [Видео с CppCon про размотку стека в механизме исключений](https://youtu.be/COEv2kq_Ht8?si=PwXzUZCQI7o6-hPY)
 [Презентация к видео CppCon](https://github.com/CppCon/CppCon2018/blob/master/Presentations/unwinding_the_stack_exploring_how_cpp_exceptions_work_on_windows/unwinding_the_stack_exploring_how_cpp_exceptions_work_on_windows__james_mcnellis__cppcon_2018.pdf)
