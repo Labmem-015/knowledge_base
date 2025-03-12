@@ -9,6 +9,7 @@
 [Про векторные представления слов (эмбеддинги)](https://vickiboykis.com/what_are_embeddings/) file:///D:/BOOKS/embeddings.pdf
 [Трансформеры с нуля](https://e2eml.school/transformers.html)
 [Иллюстративный трансформер](https://jalammar.github.io/illustrated-transformer/)
+[С чего начинать изучения llama cpp](https://github.com/j0schihatake/NN_llama_cpp_docker)
 
 ---
 # Механизм внимания
