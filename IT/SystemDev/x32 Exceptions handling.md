@@ -10,7 +10,7 @@ Under MIT license.
 8) Как вызвать деструкторы объектов в try блоке (unwinding)?
 9) Как вызвать catch-блок?
 10) Как работает state?
-11) Как заменить `dispatch_context`?
+11) Как заменить `dispatch_context`?c
 12) Что делает атрибут `frame` в директиве `proc`? И что делает аргумент этого атрибута?
 # Возможные ответы
 1) Вызывается `lpfnHandler` из `scopetable` 
