@@ -151,6 +151,8 @@ _CxxThrowException( void* pExceptionObject, _ThrowInfo* pThrowInfo );
 1) локальные переменные в `catch`;
 2) объект исключения (который во владении текущего фрейма);
 3) остальные локальные переменные.
+## x86 FS registry
+Указывает на TEB в третьем кольце безопасности. Если мы находимся в режиме ядра (то есть в первом кольце безопасности), то FS регистр указывает на KCPR (Kernel Processor Control Region)
 ## Общие сведения об ассемблере
 Адрес растёт вверх. Стек растёт вниз. База стека находится на старших адресах. Вершина стека на нижних адресах.
 `qword` - (quad word) означает 8-ми байтовое слово.
@@ -638,6 +640,8 @@ struct DISPATCHER_CONTEXT {
 [Про SEH из Руководства по YASM (см. главы 15.2 и 16.2)](https://www.tortall.net/projects/yasm/manual/html/index.html)
 [О передаче управления при вызове исключения](https://habr.com/ru/articles/267771/).
 [(Немного про CRT) Анатомия C Run-Time, или Как сделать программу немного меньшего размера](https://rsdn.org/article/cpp/crt.xml)
+[Китайская статья про KPCR](https://www.cnblogs.com/onetrainee/p/11675225.html)
+[Английская статья про KPCR](https://www.programmersought.com/article/89926523322/)
 
 ---
 Throw
