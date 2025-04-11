@@ -7,6 +7,7 @@
 [[#Сетевой стек ядра]]
 [[#Работа с заголовком ndis.h]]
 [[#Windbg]]
+[[Вопрос]]
 
 ---
 # Заметки от начинающих
@@ -90,3 +91,8 @@ flowchart TD
 ```kd
 bp /w "struct_name->m_ptr->my_string.m_str.Length == 52" `module!main.cpp:100`
 ```
+
+https://lordjeb.com/2006/09/15/windbg-conditional-breakpoints-with-string-pattern-matching/
+
+---
+# Вопросы и ответы
