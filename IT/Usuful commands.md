@@ -68,3 +68,14 @@ echo:
 echo:
 .\file.exe
 ```
+
+
+Для отображения общей информации о пакете можно использовать команду:
+`apt-cache show <package_name>=<package_version>`
+
+Если нужно отобразить только зависимости (например у метапакетов), то можно использовать:
+`apt-cache depends <package_name>=<package_version>`
+
+Список обратных зависимостей (то есть список пакетов, которые зависят от `package_name`):
+`apt-cache rdepends --installed <package_name>`
+`--installed` ограничивает вывод теми пакетами, которые в данный момент установлены.

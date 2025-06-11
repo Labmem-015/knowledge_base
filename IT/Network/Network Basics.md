@@ -30,3 +30,6 @@ flowchart TD
 ---
 # URL, URN, URI
 https://alekseev74.ru/lessons/show/http/uri-url-urn
+# Как веб сервер обрабатывает несколько параллельных запросов на одном порту
+[Источник](https://www.baeldung.com/cs/web-server-concurrent-requests-one-port)
+Сначала веб сервер создаёт сокет слушателя (listener). Затем, когда несколько клиентов стучатся по порту, сервер выделяет под каждое соединение сокет и выполняет запросы на них.
