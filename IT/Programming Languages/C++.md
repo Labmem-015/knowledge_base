@@ -1,6 +1,9 @@
 [[Start Page|На главную]]
 
 ---
+# Исключения
+`category` используется для конструирования `error_code`. А `error_code` используется для конструирования `generic_error`/`system_error`/`runtime_error`.
+
 # Стирание типов
 Стирание типов: (void*) reinterpret_cast<void*>(bar);
 Оно так же присутствует в std::functions, std::any, std::variants, std::string_view и там где используется полиморфизм. Стирание типов ещё называется type erasure
