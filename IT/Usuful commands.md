@@ -1,6 +1,16 @@
 [[Start Page|На главную]]
 
 ---
+Просмотр сетевых адаптеров Windows:
+```run
+ncpa.cpl
+```
+
+msvcmon parameters
+```
+msvcmon.exe /installed /nofirewallwarn /timeout 86400 /noauth /anyuser /nosecuritywarn
+```
+
 Проброс туннеля на примере отладки с `msvcmon`
 ```
 ssh -nN -L localhost:4026:remotehost:4026 user@ssh-host
