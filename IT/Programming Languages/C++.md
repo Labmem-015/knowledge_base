@@ -52,6 +52,9 @@ int main() {
 ---
 # C++20
 ## Coroutines
+Info
+## Ranges
+`std::ranges::stable_partition` - reorder elements.
 
 ---
 # Прочее
