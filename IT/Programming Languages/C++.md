@@ -68,6 +68,9 @@ int main() {
 	- точка возобновления
 ### 1.3. `Awaitable` и `Awaiter`
 По моим наблюдениям операндом `co_await` всегда является `Awaitable` объект, который затем преобразуется в `Awaiter`. `Awaiter` объект определяет поведение оператора `co_await`.
+Для `Awaitable` должны быть реализовываны:
+- `Awaiter Awaitable::operator co_await()`
+- `Awaiter operator co_await(Awaitable&)`
 `Awaiter` должен иметь три метода:
 - `bool await_ready()`
 - `void await_suspend(std::coroutine_handle<>)`
@@ -89,9 +92,10 @@ auto result = co_await some_awaitable;
 ### 1.5. Работа `co_await`
 Мы имеем `co_await expr;` Происходит следующее:
 1. `expr` конвертируется в `awaitable` по правилам.
-2. Затем извлекается `awaiter` объект.
-3. Далее вызывается `awaiter.await_ready()`. Если результат `false`, то вызывается `awaiter.await_suspend(handle);`
-4. Наконец, вызывается `awaiter.await_resume()`.
+2. `co_await` оператор возвращает `awaiter` объект.
+3. Далее вызывается `awaiter.await_ready()`. Если результат `false`, то вызывается `awaiter.await_suspend(handle);` Если результат `true`, то сразу вызывается `awaiter.await_resume()`.
+4. Наконец, для возобновления корутины где-то вызывается `awaiter.await_resume()`.
+5. По итогу всего выражения `co_await expr` мы получаем возвращаемое значение от `awaiter.await_resume()`.
 ### 1.4. Требования к корутинам
 Каждая корутина должна иметь возвращаемое значение, которое удовлетворяет следующие требования.
 Нельзя использовать:
