@@ -191,4 +191,13 @@ int main(void) {
 # VCPKG
 ## База
 Registry - это реестр пакетов. Baseline - это хэш коммита данного реестра. Есть два режима установки пакетов: классический (с глобальной установкой пакетов) и режим манифеста (с локальной установкой пакетов в `vcpkg_install`). Чтобы войти в режим манифеста, нужно создать файлы манифеста: `vcpkg.json` (там перечисляются пакеты) и `vcpkg-configuration.json` (там содержатся ссылки на реестры пакетов). Эти файлы создаются командой `vcpkg new --application`. Затем можно добавлять пакеты. Для этого используем команду `vcpkg add port <package_name>`. Готово.
+
+## Baseline
+Это конкретная ревизия реестра пакетов. Чтобы сделать его фиксированным нужно выполнить команду:
+```bash
+vcpkg x-update-baseline --add-initial-baseline
+```
+Он вернёт актуальный хэш ревизии реестра, а опция `--add-initial-baseline` добавит этот хэш в `vcpkg.json` по ключу `builin-baseline`.
 ## Интеграция с CMake
+Интегрируем через toolchain:
+`CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake`
