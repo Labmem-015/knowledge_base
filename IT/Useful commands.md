@@ -6,6 +6,11 @@
 ncpa.cpl
 ```
 
+Быстро создать файл [StackOverflow](https://stackoverflow.com/questions/982659/quickly-create-large-file-on-a-windows-system):
+```cmd
+fsutil file createnew <filename> <length>
+```
+
 msvcmon parameters
 ```
 msvcmon.exe /installed /nofirewallwarn /timeout 86400 /noauth /anyuser /nosecuritywarn
