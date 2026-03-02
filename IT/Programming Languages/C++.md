@@ -119,6 +119,14 @@ int main(int argc, char* argv[]) {
 `std::ranges::stable_partition` - reorder elements.
 
 ---
+# Boost Library
+## 1. `dispatch` vs `post`
+- `dispatch(handler)` - быстрая (синхронная): позволяет вызвать обработчик сразу внутри функции, если работает в том же потоке, что и `io_context.run()`. Есть риск рекурсии
+- `post(handler)` - отложенная обработка: отправляет обработчик в очередь. Будет выполняться после `io_context.run()`.
+## 2. `write` vs `write_some`
+`write` гарантирует полную доставку буфера, а `write_some` - нет. Во втором случае мы сами должны реализовать полноценный `write`
+
+---
 # Прочее
 ## Исключения
 `category` используется для конструирования `error_code`. А `error_code` используется для конструирования `generic_error`/`system_error`/`runtime_error`.
