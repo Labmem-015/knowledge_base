@@ -117,6 +117,33 @@ int main(int argc, char* argv[]) {
 ```
 ## 2. Ranges
 `std::ranges::stable_partition` - reorder elements.
+# 3. Requires
+Есть два вида `requires`:
+- requires-expression для описания концептов
+- requires-clause для прямого описания шаблонных функций
+# 3.1 Requires-expression
+```cpp
+concept my_concept = requires (parameter-list) {
+	// simple requirements:
+	parameter1 + paramter2;
+	// compound requirements
+	{ expression1 } -> type-constraint;
+	{ expression2 } noexcept;
+	{ expression3 };
+	// Nested requirements:
+	requires std::is_same<param2, std::string>;
+}
+```
+# 3.2 Requires-clause
+```cpp
+// type requirement
+template <typename T> requires (std::is_void_v<T>)
+void SomeFunction(T t);
+
+// Trailing requirement (if not satisfied then ignore this overload)
+template <typename T>
+void OtherFunction(T t) requires (std::is_void_v<T>);
+```
 
 ---
 # Boost Library
