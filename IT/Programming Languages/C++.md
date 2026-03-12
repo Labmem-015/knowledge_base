@@ -117,11 +117,11 @@ int main(int argc, char* argv[]) {
 ```
 ## 2. Ranges
 `std::ranges::stable_partition` - reorder elements.
-# 3. Requires
+## 3. Requires
 Есть два вида `requires`:
 - requires-expression для описания концептов
 - requires-clause для прямого описания шаблонных функций
-# 3.1 Requires-expression
+### 3.1 Requires-expression
 ```cpp
 concept my_concept = requires (parameter-list) {
 	// simple requirements:
@@ -134,7 +134,7 @@ concept my_concept = requires (parameter-list) {
 	requires std::is_same<param2, std::string>;
 }
 ```
-# 3.2 Requires-clause
+### 3.2 Requires-clause
 ```cpp
 // type requirement
 template <typename T> requires (std::is_void_v<T>)
@@ -144,14 +144,6 @@ void SomeFunction(T t);
 template <typename T>
 void OtherFunction(T t) requires (std::is_void_v<T>);
 ```
-
----
-# Boost Library
-## 1. `dispatch` vs `post`
-- `dispatch(handler)` - быстрая (синхронная): позволяет вызвать обработчик сразу внутри функции, если работает в том же потоке, что и `io_context.run()`. Есть риск рекурсии
-- `post(handler)` - отложенная обработка: отправляет обработчик в очередь. Будет выполняться после `io_context.run()`.
-## 2. `write` vs `write_some`
-`write` гарантирует полную доставку буфера, а `write_some` - нет. Во втором случае мы сами должны реализовать полноценный `write`
 
 ---
 # Прочее
@@ -216,6 +208,63 @@ int main(void) {
 
 ## lambda
 Если указать переменные в захватываемом контексте лямбды функции, то он будет представлен функциональным объектом (его нельзя будет скастить в указатель на функцию). Если же например контекст будет пустым, то его можно будет скастить к указателю на функцию.
+
+---
+# Boost
+## 1. `io_context`
+Это контекст выполнения асинхронных операций в boost. Его можно запускать в нескольких потоках. Для этого в каждом потоке надо вызвать `ctx.run();`'
+## 2. `io_context::strand`
+Эта штука позволяет выполнять non-concurreny способом асинхронные операции. Например у нас есть `ctx`, который запущен на двух потоках. Часть асинхронных операций работают прямо на нём, а часть на `strand`, который к нему привязан. Все асинхронные операции внутри `strand` будут работать не асинхронно по отношению друг к другу.
+## 3. `executor_work_guard<io_context>`
+Если все операции в очереди выполнятся, то эта штука не позволит вернуть управление из `ctx.run()` и она продолжит своё выполнение в ожидании новых задач.
+## 4. `dispatch` vs `post`
+- `dispatch(handler)` - быстрая (синхронная): позволяет вызвать обработчик сразу внутри функции, если работает в том же потоке, что и `io_context.run()`. Есть риск рекурсии
+- `post(handler)` - отложенная обработка: отправляет обработчик в очередь. Будет выполняться после `io_context.run()`.
+## 5. `write` vs `write_some`
+`write` гарантирует полную доставку буфера, а `write_some` - нет. Во втором случае мы сами должны реализовать полноценный `write`
+## 6.`write/read` vs `write_some/read_some`
+Отличие в том, что `write/read` это более высокоуровневая функция, которая гарантирует, что все данные были переданы, в отличие от `write_some/read_some`.
+## 7. Закрытие соединений (Boost.Beast)
+Для закрытия обычного сокета достаточно `tcp_stream.close();`
+Для закрытия SSL/TLS соединений нужно отправлять дополнительные сигналы о закрытии соединения во избежание `truncation attack`. Делается это так: `ssl_stream.shutdown()`.
+Для закрытия WebSocket:
+```cpp
+// Send the close frame in sync mode
+ws.close(boost::beast::websocket::close_code::normal, ec);
+
+void close_session()
+{
+    // ...
+    ws_.async_close(
+        boost::beast::websocket::close_code::normal,
+        boost::beast::bind_front_handler(
+            &session::on_close, // A handler to manage the read loop
+            shared_from_this()));
+}
+
+void on_close(boost::beast::error_code ec)
+{
+	if (ec == boost::beast::websocket::error::closed)
+    {
+        // The connection is fully closed. The session can now safely end,
+        // and resources will be freed (e.g., via shared_ptr going out of scope).
+        return; 
+    }
+
+    if (ec) { /* handle other errors */ return; }
+
+    // Keep reading until error::closed is returned
+    ws_.async_read(
+        buffer_,
+        boost::beast::bind_front_handler(
+            &session::on_close,
+            shared_from_this()));
+}
+```
+## 8. `CompletionToken`
+## 8.1 `use_awaitable`
+## 8.2. `detached`
+## 8.3 `deferred`
 
 ---
 # CMake
