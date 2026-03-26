@@ -103,6 +103,6 @@ echo:
 
 Для того, чтобы добавить цвета в `less` для xml можно использовать `pygmentize`. Примеры команд:
 ```bash
-cat file.xml | pygmentize -l xml -f terminal256 | less -R
+cat file.xml | pygmentize -l xml -f terminal | less -R
 ```
 
