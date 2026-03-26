@@ -100,3 +100,9 @@ echo:
 Список обратных зависимостей (то есть список пакетов, которые зависят от `package_name`):
 `apt-cache rdepends --installed <package_name>`
 `--installed` ограничивает вывод теми пакетами, которые в данный момент установлены.
+
+Для того, чтобы добавить цвета в `less` для xml можно использовать `pygmentize`. Примеры команд:
+```bash
+cat file.xml | pygmentize -l xml -f terminal256 | less -R
+```
+
