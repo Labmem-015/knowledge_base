@@ -41,11 +41,6 @@ C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build
 C:\Program Files (x86)\Windows Kits\10\Include
 ```
 
-Для автодеплоя использовать параметры для conan тулчейна:
-```
-conan install . --build=missing --profile msvc-194-w10x86_64-debug --options */*:dev_drive_deploy=True
-```
-
 Создать локальную ветку от удалённой и переключится на неё:
 ```git
 git checkout -b branch1 origin/branch1
@@ -106,3 +101,13 @@ echo:
 cat file.xml | pygmentize -l xml -f terminal | less -R
 ```
 
+
+WinDbg Server Creation
+```
+dbgsrv -t tcp:port=5005,password=1234 
+```
+
+WinDbg Server Connecting
+```
+tcp:server=sys-dev-017.avsw.local,port=5005,password=1234
+```
