@@ -101,7 +101,6 @@ echo:
 cat file.xml | pygmentize -l xml -f terminal | less -R
 ```
 
-
 WinDbg Server Creation
 ```
 dbgsrv -t tcp:port=5005,password=1234 
