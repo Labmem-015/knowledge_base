@@ -39,6 +39,10 @@
 # Отключение PatchGuard
 
 ---
+# Модификация SSDT в обход патчгарда
+Для этих целей можно использовать технику трамплинов. 
+
+---
 # Notes
 - PG проверяет постоянно контрольные суммы структур на основе записанных при загрузке ОС значений.
 - Основные направления обхода PG: Direct Kernel Object Manipulation (DKOM), SSDT hooking using indirect modifications, race condition, Zero-Day эксплойты, Kernel Code injection.
