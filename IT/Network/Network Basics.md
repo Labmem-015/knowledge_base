@@ -2,10 +2,37 @@
 
 ---
 # Оглавление
-[[#Уровни сетевой коммуникации]]
-[[#URL, URN, URI]]
-[[#NAT]]
-[[#Virtual Network (libvirt)]]
+```table-of-contents
+```
+
+---
+# DNS
+## DNS over HTTPS (DoH)
+### Linux
+1. Установить dnscrypt-proxy.
+2. Расчитать stamp в DNS Stamp calculator
+3. Редактировать `/etc/dnscrypt-proxy/dnscrypt-proxy.toml`:
+```toml
+server_names = ['<dns_hostname>']
+listen_addresses = ['127.0.0.1:53']
+[static.'<dns_hostname>']
+stamp = '<dns_stamp>'
+```
+4. Далее редактируем `/etc/systemd/resolved.conf`:
+```.conf
+[Resolve]
+DNS=localhost
+FallbackDNS=1.1.1.1 8.8.8.8 9.9.9.9
+```
+5. Запуск служб:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now dnscrypt-proxy systemd-resolved
+```
+6. Проверка:
+```ssh
+resolvectl status
+```
 
 ---
 # HTTPS
