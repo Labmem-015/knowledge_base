@@ -7,3 +7,4 @@ Solution: Add this to `settings.json`:
 	"path": "/bin/bash"
 }
 ```
+Or simply restart the system maybe?
