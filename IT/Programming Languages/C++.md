@@ -7,6 +7,18 @@
 
 ---
 # C++11
+## Барьеры памяти
+Release-Acquire формирует одностороннюю связь, которая синхронизирует два потока. Release выплёскивает все изменения в поток acquire как посылку. Acqurie говорит, что все изменения в памяти принудительно заносятся в локальный кэш после load.
+[Формулировка](https://habr.com/ru/articles/963818/): 
+- `memory_order_release` в producer создает "барьер": все операции до `store` не могут быть переупорядочены после него.
+- `memory_order_acquire` в consumer создает барьер: все операции после `load` не могут быть переупорядочены до него.
+- Это создает отношение "happens-before" между потоками
+Я так это понимаю:
+Если мы производим `std::atomic<T>::store` с `memory_order_release`, то барьер работает так:
+- Операции чтения и записи в память выше не могут идти ниже `store` (атомарные и обычные).
+- Мы публикуем все изменения в памяти до store и как бы отпускаем те данные.
+- Всё, что ниже становится непредсказуемым.
+![[memory_barriers.jpg]]
 ## Лямбда выражения
  У нас есть лямбда-выражение, которое не замыкается:
 ```cpp
@@ -122,6 +134,7 @@ int main(int argc, char* argv[]) {
 - requires-expression для описания концептов
 - requires-clause для прямого описания шаблонных функций
 ### 3.1 Requires-expression
+Возвращает true или false в зависимости от того, компилируется ли описанный блок. Встречается в определении концепта, внутри require-clause или static_assert.
 ```cpp
 concept my_concept = requires (parameter-list) {
 	// simple requirements:
@@ -135,6 +148,7 @@ concept my_concept = requires (parameter-list) {
 }
 ```
 ### 3.2 Requires-clause
+Применяет к шаблону логическое условие в compile time. Он встречается после списка параметров шаблона или сигнатуры функции.
 ```cpp
 // type requirement
 template <typename T> requires (std::is_void_v<T>)
