@@ -19,6 +19,11 @@ Release-Acquire формирует одностороннюю связь, кот
 - Мы публикуем все изменения в памяти до store и как бы отпускаем те данные.
 - Всё, что ниже становится непредсказуемым.
 ![[memory_barriers.jpg]]
+## Atomic compare-exchange
+`compare_exchange_weak` и `compare_exchange_strong` отличаются тем, что слабая может давать ошибки. А сильная обрабатывает ошибки внутри себя в цикле.
+Херб Саттер (Herb Sutter) [вывел](https://stackoverflow.com/questions/66493926/dont-really-get-the-logic-of-stdatomiccompare-exchange-weak-and-compare-exc) простое правило для выбора:
+1. Если вы пишете операцию в цикле (wait-loop) — используйте **`compare_exchange_weak`**.
+2. Если вы делаете замену без цикла — используйте **`compare_exchange_strong`**. 
 ## Лямбда выражения
  У нас есть лямбда-выражение, которое не замыкается:
 ```cpp
