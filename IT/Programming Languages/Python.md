@@ -13,11 +13,13 @@ pyenv init --install [shell]
 ### Создание виртуальной среды в Linux
 После установки pyenv можно создать виртуальную среду следующей командой:
 ```bash
-pyenv virtualenv <py_version> <venv_name>
+pyenv exec <py_version> -m venv <venv_name>
+#or
+#pyenv virtualenv <py_version> <venv_name>
 ```
 Активируем среду:
 ```cmd
-sourece ./<venv_name>/bin/activate
+source ./<venv_name>/bin/activate
 ```
 Профит.
 ## Создание виртуальной среды в Windows
