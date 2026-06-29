@@ -2,21 +2,25 @@
 ```
 
 ---
-# Windows
-## tab
+# tab
 Ввести команду `:echo stdpath('config')`, которая покажет директорию для конфигураций. В данной директории в файле `init.lua` вводим следующие параметры:
 ```lua
 vim.opt.tabstop = 4         -- A TAB character looks like 4 spaces
 vim.opt.shiftwidth = 4      -- Number of spaces inserted when indenting
 ```
-##  Как загрузить vim plug
-В PowerShell:
+# Как загрузить vim plug
+## UNIX (bash)
+```bash
+sh -c 'curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
+       https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+```
+## Windows (PowerShell)
 ```powershell
 iwr -useb https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim |`
     ni $HOME/vimfiles/autoload/plug.vim -Force
 ```
 Он установить его в `~\vimfiles\autoload\plug.vim`
-## Как установить плагины
+# Как установить плагины
 В `nvim.lua` прописать:
 ```lua
 local Plug = vim.fn['plug#']
@@ -27,7 +31,7 @@ Plug('https://github.com/<user_name>/<repo_name>.git')
 vim.call('plug#end')
 ```
 Затем нужно перезайти в `nvim` и выполнить команду: `:PlugInstall`
-## Как поменять бинды
+# Как поменять бинды
 Назначим кнопку `<leader>` которая позволит активировать последовательность из уже занятых стандартных клавиш. По умолчанию это обратный слэш `\`.
 Меняем её:
 ```lua
