@@ -10,11 +10,34 @@ curl -fsSL https://pyenv.run | bash
 pyenv init --install [shell]
 ```
 По идее он всё настроит сам, но если будут проблемы, то следует ссылаться на [официальную страницу проекта](https://github.com/pyenv/pyenv).
+Далее можно скачать версию Python:
+```bash
+pyenv install <py_version>
+```
+И вывести список версий:
+```bash
+pyenv versions
+```
+Можно выбрать версию для данной директории:
+```bash
+pyenv shell <py_version> # Set version for the current shell session
+pyenv local <py_version> # Set version for the current dir
+pyenv global <py_version> # Set version globally
+```
+Вывести текущую версию можно:
+```bash
+pyenv version
+```
 ### Создание виртуальной среды в Linux
 После установки pyenv можно создать виртуальную среду следующей командой:
 ```bash
-pyenv exec <py_version> -m venv <venv_name>
-#or
+# First select version:
+pyenv local <py_version>
+# Then create venv
+python -m venv <venv_name>
+# Next commands are not working on magicbook (arch laptop)
+# pyenv exec <py_version> -m venv <venv_name>
+# or:
 #pyenv virtualenv <py_version> <venv_name>
 ```
 Активируем среду:
