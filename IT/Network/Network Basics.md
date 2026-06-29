@@ -12,7 +12,7 @@ DNS-суффикс - это часть доменного имени, котор
 Типы суффиксов:
 - Основной DNS-суффикс задаётся для самого компьютера (например, имя домена, к которому он принадлежит).
 - Суффикс конкретного подключения, который позволяет привязать его к конкретному сетевому интерфейсу (типа vEthernet и т.д.).
-## Windows. NRPT
+### Windows. NRPT
 В Windows можно использовать Name Resolution Policy Table (NRPT) для маршрутизации на основе политик. Работает на уровне DNS клиента до выбора сервера из настроек адаптера.
 Таким образом можно выбрать, домены с каким суффиксом к какому DNS серверу будут обращаться (от имени администратора):
 ```powershell
@@ -26,6 +26,20 @@ Get-DnsClientNrptRule
 ```powershell
 Remove-DnsClientNrptRule -Name "{<GUID>}"
 ```
+### Linux systemd-resolve
+Создаём файл `etc/systemd/network.d/00-override.network`. Прописываем в нём:
+```ini
+[Match]
+Name=eth0
+
+[Network]
+Domains=~<domain.suffix>
+DNS=<dns_ip>
+```
+Перезапустить службу `systemd-resolved`
+
+
+---
 ## DNS over HTTPS (DoH)
 ### Linux
 1. Установить dnscrypt-proxy.
