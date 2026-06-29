@@ -177,10 +177,12 @@ void OtherFunction(T t) requires (std::is_void_v<T>);
 
 Стирание типов: `(void*) reinterpret_cast<void*>(bar)`;
 Оно так же присутствует в std::functions, std::any и там где используется полиморфизм. Стирание типов ещё называется type erasure.
-## lvalue, rvalue...
+## Категории выражений (lvalue, rvalue...)
 lvalue и rvalue - это категории выражений, влияющих на семантику работы с объектами. rvalue - это временное значение в памяти (литерал). lvalue постоянное именованное значение в памяти (переменная). xvalue (expiring value) - это значение gvalue, которое обозначает объект, ресусры которого можно повторно использовать. Например std::move(x). gvalue (generalized value) - это выражение, оценка (evaluation) которого определяет идентичность объекта или функции.
 ![[gvalue-rvalue-expressions.png]]
-
+In C++, you must separate the **type** of a variable from the **value category** of its name expression:
+- **The Type:** `auto&&` is a **universal reference** (also called a forwarding reference). Depending on the initializer, the deduced type of `obj` can be an lvalue reference (`T&`) or an rvalue reference (`T&&`).
+- **The Expression Category:** Any named variable expression is an **lvalue**. Even if `obj` has the type "rvalue reference", using the word `obj` evaluates to an lvalue because it has a name and an identifiable memory address.
 ## decltype, declval
 `decltype()` резолвит конечный тип всего выражения.
 `declval<T>()` возвращает rvalue ссылку на объект класса, не вызывая конструктор. Таким образом можно извлекать тип членов класса без конструирования объекта посредством decltype(). Пример:
