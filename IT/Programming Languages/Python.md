@@ -35,10 +35,15 @@ pyenv version
 pyenv local <py_version>
 # Then create venv
 python -m venv <venv_name>
-# Next commands are not working on magicbook (arch laptop)
-# pyenv exec <py_version> -m venv <venv_name>
-# or:
-#pyenv virtualenv <py_version> <venv_name>
+##################
+# Via pyenv-virtualenv plugin
+yay -S pyenv-virtualenv
+# Configuring pyenv-virtualenv
+echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc
+source ~/.bashrc
+# Create venv
+pyenv virtualenv <py_version> <venv_name>
+# ??? pyenv exec <py_version> -m venv <venv_name>
 ```
 Активируем среду:
 ```cmd
