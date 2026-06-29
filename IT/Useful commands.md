@@ -1,4 +1,36 @@
 [[Start Page|На главную]]
+```table-of-contents
+```
+
+---
+# Git directory scope configs
+Create a file (for example `.gitconfig-repos`) and write configs:
+```ini
+[user]
+	name = <Name>
+	email = <Email>
+```
+Then you can include this config in **global configs** (for example `.gitconfig-repos` instead of `<config_path>`):
+```ini
+[includeIf "gitdir/i:<dir_path>/"]
+        path = <config_path>
+```
+You must add `/` after `<dir_path>`.
+# Git global config example
+```ini
+[user]
+        name = <Name>
+        email = <Email>
+[alias]
+        comr = !sh -c 'git fetch $1 merge-requests/$2/head:mr-$1-$2 && git checkout mr-$1-$2' -
+        co = checkout
+        br = branch
+        ci = commit
+        st = status
+        hist = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --branches
+[includeIf "gitdir/i:<dir_path>/"]
+        path = <config_path>
+```
 
 ---
 lsof (List Open Files) — отображает информацию об открытых файлах, сетевых соединениях, сокетах и процессах, которые их используют.
@@ -27,10 +59,17 @@ msvcmon.exe /installed /nofirewallwarn /timeout 86400 /noauth /anyuser /nosecuri
 ssh -nN -L localhost:4026:remotehost:4026 user@ssh-host
 ```
 
+# PowerShell
+## Git mv `*.cpp`
+```powershell
+git mv (Get-ChildItem *.cpp) ./src
+```
+## Formatting all files recursively
 ```
 Get-ChildItem .\ProjectSourceFilesFolder -File -Recurse -Include "*.cpp","*.c","*.h","*.hpp" | Foreach {clang-format -i $_}
 ```
 
+---
 Путь до инструментов разработчика:
 ```
 C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build
