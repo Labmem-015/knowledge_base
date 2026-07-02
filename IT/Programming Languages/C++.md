@@ -188,14 +188,31 @@ void OtherFunction(T t) requires (std::is_void_v<T>);
 # Прочее
 ## Исключения
 `category` используется для конструирования `error_code`. А `error_code` используется для конструирования `generic_error`/`system_error`/`runtime_error`.
-## std::decay
-Убирает квалификаторы `const` и `volatile`. Приводит все ссылки к обычному значению, как при передаче аргумента в функцию по значению. Используется почти везде, где нужно копирование.
+## `std::decay` vs `std::remove_cvref_t`
+И `std::decay`, и `std::remove_cvref_t`  удаляют из типа **ссылки**, приводя его к обычному значению, как при передаче аргумента в функцию по значению. Также удаляют из типа **квалификаторы** `const`/`volatile`. Однако `std::decay` идет дальше, преобразуя массивы и функции (ещё лямбды) в указатели. `std::remove_cvref_t` оставляет массивы и функции нетронутыми.
 ## std::make_shared
 Особое внимание стоит уделить созданию `std::tuple`, так как `std::make_shared` по сути производит `std::decay()`.
 ## std::tie
 Эта функция создаёт временный набор ссылок на переменные, которые уже существуют в памяти. Использовать стоит аккуратно, так как можно создать висячие ссылки. Все объекты кастятся к lvalue reference.
 ## std::forward_as_tuple
 Ведёт себя как `std::forward`
+
+# Спецификаторы
+- **`constexpr`** вычисляет значения в compile time, если возможно. Иначе считает в рантайме.
+- **`consteval`** требует вычисления только в compile time и падает в ошибку, если не может отработать во время компиляции.
+- **`constinit`** вынуждает переменную инициализироваться во время компиляции, оставляя возможность изменить значение переменной позже.
+# Ссылки
+## Коллапс ссылок
+Нельзя самим писать ссылку на ссылку в объявлении переменной: `int & &`. Однако из-за шаблонов, `auto` и `alias` компилятору приходится сталкиваться с этим и он автоматически их сжимает по правилу (см. рисунок ниже).
+Универсальных ссылок - не официальная концепция, которая выводится из правила коллапсирования ссылок.
+![[cpp_reference_collapse.png]]
+Когда работает:
+- Вывод типов в шаблонах (Template Type Deduction), когда шаблонная функция принимает аргумент по универсальной ссылке (например, `T&&`);
+- Идеальная передача (Perfect Forwarding) через `std::forward`;
+- Псевдонимы типов (`typedef` или `using`);
+- Использование ключевого слова `auto&&`.
+Особенно интересно посмотреть на имплементацию `std::forward` и `std::move`. В первом случае мы кастим к `T&&`, которое может сколлапсировать в lvalue ref, либо в rvalue ref. В `std::move` мы производим чистый каст к rvalue: `static_cast<remove_reference_t<_Ty>&&>`.
+Так `std::forward` не меняет физически ничего в объекте — он лишь **меняет категорию выражения**, восстанавливая семантику (ту информацию о value category аргумента, которая была "стёрта" фактом присвоения имени параметру).
 # Templates
 ## Variadic Templates
 Используется синтаксис:
@@ -240,11 +257,15 @@ block-beta
 Стирание типов: `(void*) reinterpret_cast<void*>(bar)`;
 Оно так же присутствует в std::functions, std::any и там где используется полиморфизм. Стирание типов ещё называется type erasure.
 ## Категории выражений (lvalue, rvalue...)
+У нас есть типы переменных, которые могут быть ссылками (называются rvalue ссылка и lvalue ссылка). Но в каждом выражении они могут принимать разную категорию.
+Выражение с любым именованным типом - это всегда lvalue категория вне зависимости от типа. Категория выражения напрямую определяет семантику для компилятора.
 lvalue и rvalue - это категории выражений, влияющих на семантику работы с объектами. rvalue - это временное значение в памяти (литерал). lvalue постоянное именованное значение в памяти (переменная). xvalue (expiring value) - это значение gvalue, которое обозначает объект, ресусры которого можно повторно использовать. Например std::move(x). gvalue (generalized value) - это выражение, оценка (evaluation) которого определяет идентичность объекта или функции.
 ![[gvalue-rvalue-expressions.png]]
-In C++, you must separate the **type** of a variable from the **value category** of its name expression:
-- **The Type:** `auto&&` is a **universal reference** (also called a forwarding reference). Depending on the initializer, the deduced type of `obj` can be an lvalue reference (`T&`) or an rvalue reference (`T&&`).
+In C++, you must separate the **declaration type** of a variable from the **value category** of its name expression:
+- **The Declaration Type:** `auto&&` is a **universal reference** (also called a forwarding reference). Depending on the initializer, the deduced type of `obj` can be an lvalue reference (`T&`) or an rvalue reference (`T&&`).
 - **The Expression Category:** Any named variable expression is an **lvalue**. Even if `obj` has the type "rvalue reference", using the word `obj` evaluates to an lvalue because it has a name and an identifiable memory address.
+Для закрепления:
+![[cpp_ref_type_vs_value_category.png]]
 # Универсальная ссылка
 Если мы имеем шаблонный тип или тип `auto`, то можно создать универсальную ссылку:
 ```cpp
@@ -373,6 +394,14 @@ void on_close(boost::beast::error_code ec)
 ## 8.1 `use_awaitable`
 ## 8.2. `detached`
 ## 8.3 `deferred`
+## 8.4 use_future
+## Token Adapters
+You can wrap the tokens above using **adapters** to inject special behaviors into the completion handler. 
+- **`boost::asio::as_tuple`**: Packages the arguments (`std::exception_ptr`, `R`) into a `std::tuple`, preventing exceptions from being thrown directly out of a `co_await` expression.
+- **`boost::asio::redirect_error`**: Redirects a failure to a `boost::system::error_code` object instead of throwing an exception.
+- **`boost::asio::bind_executor`**: Guarantees that the completion handler runs within a specific executor or strand, regardless of where the coroutine finished.
+- **`boost::asio::bind_allocator`**: Directs the internal handler mechanisms to use a custom memory allocator.
+- **`boost::asio::bind_cancellation_slot`**: Associates a cancellation slot to track or trigger early teardown of the spawned context
 
 ---
 # CMake
