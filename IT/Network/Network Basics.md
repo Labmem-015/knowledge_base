@@ -16,16 +16,25 @@ DNS-суффикс - это часть доменного имени, котор
 В Windows можно использовать Name Resolution Policy Table (NRPT) для маршрутизации на основе политик. Работает на уровне DNS клиента до выбора сервера из настроек адаптера.
 Таким образом можно выбрать, домены с каким суффиксом к какому DNS серверу будут обращаться (от имени администратора):
 ```powershell
-Add-DnsClientNrptRule -Namespace "<.company.suffix>" -NameServers "<DNS_server_address1>", "<DNS_server_address2>"
+Add-DnsClientNrptRule -NameSpace ".<company.suffix>" -NameServers ("<DNS_server_address1>", "<DNS_server_address2>") -DirectAccessEnabled
+```
+Очистка кэша DNS:
+```PowerShell
+Clear-DnsClientCache
 ```
 Чтобы посмотреть список NRTP правил:
 ```powershell
 Get-DnsClientNrptRule
 ```
+Проверка работы политик:
+```PowerShell
+Get-DnsClientNrptPolicy -Effective
+```
 По GUID можно удалить правило:
 ```powershell
 Remove-DnsClientNrptRule -Name "{<GUID>}"
 ```
+
 ### Linux systemd-resolve
 Создаём файл `etc/systemd/network.d/00-override.network`. Прописываем в нём:
 ```ini
