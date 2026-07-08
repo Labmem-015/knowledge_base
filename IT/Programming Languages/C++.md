@@ -65,6 +65,37 @@ int main() {
 1 4 9 16 25 36 49 64 81 100
 ```
 Так, мы переопределили использование оператора `Callee`, изменив то, как мы подаём в неё аргументы: мы передаём первый аргумент (`std::placeholder::_1`) два раза для `lhs` и `rhs`.
+## `std::shared_ptr`
+Если производить наследование класса от `std::enable_shared_from_this`, то мы сможем безопасно создавать shared указатели внутри класса, при этом увеличивая счётчик. Для этого нужно вызывать `shared_from_this()` метод. Однако нам необходимо гарантировать, чтобы объект уже существовал внутри `std::shared_ptr`. Для этого можно использовать следующий паттерн:
+```cpp
+class SafeObject : public std::enable_shared_from_this<SafeObject> {
+private:
+	SafeObject(int value) : var(value) {
+		std::cout << "True ctor" << std::endl;
+	}
+	struct PrivateToken {explicit PrivateToken() = default; };
+public:
+	SafeObject(PrivateToken, int value) : SafeObject(value) {
+		std::cout << "Helper ctor" << std::endl;
+	}
+	
+	static decltype(auto) create(int value) {
+		return std::make_shared<SafeObject>(PrivateToken{}, value);
+	}
+	
+	decltype(auto) get_self_ptr() {
+		return shared_from_this();
+	}
+private:
+	int var;
+}
+```
+Если игнорировать это решение, то при попытке создать `auto ptr = std::make_shared(this)` создастся отдельный указатель со своим счётчиком, что может привести к проблеме двойной деаллокации.
+## `std::weak_ptr`
+Умный указатель, который хранит невладеющую (слабую) ссылку на объект, который управляется `std::shared_ptr`. Он позволяет наблюдать за объектом, не предотвращая его удаления, что позволяет эффективно определять, жив ресурс или нет. 
+Ключевые моменты:
+- Не владеет объектом, не влияет на счётчик `std::shared_ptr`.
+- Нет прямого доступа через `->` или `*`. Необходимо временно сконвертировать к `std::shared_ptr` через метод `lock()`.
 
 ---
 # C++20
@@ -190,7 +221,7 @@ void OtherFunction(T t) requires (std::is_void_v<T>);
 `category` используется для конструирования `error_code`. А `error_code` используется для конструирования `generic_error`/`system_error`/`runtime_error`.
 ## `std::decay` vs `std::remove_cvref_t`
 И `std::decay`, и `std::remove_cvref_t`  удаляют из типа **ссылки**, приводя его к обычному значению, как при передаче аргумента в функцию по значению. Также удаляют из типа **квалификаторы** `const`/`volatile`. Однако `std::decay` идет дальше, преобразуя массивы и функции (ещё лямбды) в указатели. `std::remove_cvref_t` оставляет массивы и функции нетронутыми.
-## std::make_shared
+## std::make_tuple
 Особое внимание стоит уделить созданию `std::tuple`, так как `std::make_shared` по сути производит `std::decay()`.
 ## std::tie
 Эта функция создаёт временный набор ссылок на переменные, которые уже существуют в памяти. Использовать стоит аккуратно, так как можно создать висячие ссылки. Все объекты кастятся к lvalue reference.
