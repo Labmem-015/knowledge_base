@@ -2,7 +2,16 @@
 ```
 
 ---
-# tab
+# VS Code's `Ctrl+D` analogue in neovim
+In Vim, native **`Ctrl+d` scrolls down half a screen**. If you are looking for an analogue to **VS Code/Sublime Text's `Ctrl+d`** (which selects the current word and creates multiple cursors to edit next occurrences), Vim achieves this using the **`cgn` operator** combined with the **dot (`.`) command**.
+The Native Vim Workflow (`cgn` + `.`)
+Vim does not use multiple cursors natively. Instead, it relies on a powerful search-and-replace mechanism:
+1. Place your cursor on the word you want to change.
+2. Press **`*`** (asterisk) to search for that word forward, or **`#`** to search backward.
+3. Type **`cgn`** to **C**hange the **G**ewohlte (selected) **N**ext match. This deletes the word and puts you in _Insert Mode_.
+4. Type your new text, then press **`Esc`** to return to _Normal Mode_.
+5. Press **`.`** (dot) to repeat the exact same change on the next occurrence, or press **`n`** to skip it.
+# tabulation
 Ввести команду `:echo stdpath('config')`, которая покажет директорию для конфигураций. В данной директории в файле `init.lua` вводим следующие параметры:
 ```lua
 vim.opt.tabstop = 4         -- A TAB character looks like 4 spaces
