@@ -367,7 +367,11 @@ io_context ioc;
 std::jthread([&]{ioc.run()});
 ```
 ## 2. `io_context::strand`
-Эта штука позволяет выполнять non-concurreny способом асинхронные операции. Например у нас есть `ctx`, который запущен на двух потоках. Часть асинхронных операций работают прямо на нём, а часть на `strand`, который к нему привязан. Все асинхронные операции внутри `strand` будут работать не асинхронно по отношению друг к другу.
+Эта штука позволяет выполнять non-concurreny (последовательно) способом асинхронные операции. Например у нас есть `ctx`, который запущен на двух потоках. Часть асинхронных операций работают прямо на нём (задачи глобальной очереди), а часть на `strand` (своя очередь), который к нему привязан. Все асинхронные операции внутри `strand` будут работать не асинхронно по отношению друг к другу.
+
+Будут ли другие потоки простаивать?
+Нет. Возьмём пример, если `Thread 1` сейчас выполняет обработчик для `Connection A` внутри его `strand`, то `Thread 2` в это же время может спокойно обрабатывать `Connection B` в его собственном `strand`, а `Thread 3` — принимать новое соединение (`async_accept`).
+Простой возникнет только в одном случае: если у нас всего одно активное соединение (один `strand`) и 4 потока. Тогда 1 поток будет работать, а 3 — спать в ожидании других задач. Именно поэтому для каждого нового соединения создается свой, отдельный `strand`.
 ## 3. `executor_work_guard<io_context>`
 Если все операции в очереди выполнятся, то эта штука не позволит вернуть управление из `ctx.run()` и она продолжит своё выполнение в ожидании новых задач.
 ```cpp
@@ -433,6 +437,24 @@ You can wrap the tokens above using **adapters** to inject special behaviors int
 - **`boost::asio::bind_executor`**: Guarantees that the completion handler runs within a specific executor or strand, regardless of where the coroutine finished.
 - **`boost::asio::bind_allocator`**: Directs the internal handler mechanisms to use a custom memory allocator.
 - **`boost::asio::bind_cancellation_slot`**: Associates a cancellation slot to track or trigger early teardown of the spawned context
+## 9 Buffers
+### 9.1 Basic / Raw Memory Buffers
+These represent a contiguous region of raw memory (a tuple of a pointer and size) and form the foundation of Boost I/O.
+- **`const_buffer`**: Non-modifiable buffer created from const-qualified memory.
+- **`mutable_buffer`**: Modifiable region of memory; convertible to a `const_buffer`.
+- **Creation (`boost::asio::buffer`)**: These are created using the `buffer()` function overloads, taking objects like `std::vector`, `std::string`, or raw arrays.
+### 9.2 Dynamic Buffers
+Dynamic buffers encapsulate memory that automatically resizes as needed for I/O operations (like socket reads/writes). The memory is divided into readable bytes followed by writable bytes.
+- **`dynamic_vector_buffer`**: Adapts an existing `std::vector` to act as a dynamic buffer.
+- **`dynamic_string_buffer`**: Adapts an existing `std::string` for dynamic resizing.
+### 9.3 Flat Buffers
+Flat buffers guarantee that all readable and writable bytes are stored in a contiguous, single memory sequence.
+- **`flat_buffer`**: Uses default heap allocation. It is highly useful when contiguous memory is strictly required for parsing protocols or message structures.
+- **`flat_static_buffer`**: An optimization that allocates a fixed-size internal buffer (on the stack or as a member) to avoid heap allocations entirely, provided the message size doesn't exceed the capacity. 
+### 9.4 Multi-Buffers
+- **`multi_buffer`**: Behaves similarly to a `std::deque`. Instead of reallocating a single massive block of memory, it uses a sequence of multiple byte arrays. When reading/writing large streams, this avoids the cost of continuously copying and reallocating contiguous memory.
+### 9.5 Stream Wrappers
+- **`make_printable`**: Not a buffer type itself, but a utility wrapper that converts a buffer sequence so it can be safely printed to a `std::ostream` (such as `std::cout`).
 
 ---
 # CMake
