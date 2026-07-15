@@ -1,3 +1,8 @@
+# Boosting pacman speed (ArchLinux)
+Сначала делаем бэкап `/etc/pacman.d/mirrorlist`. Затем используя пакет `reflector` запустить команду для изменения списка зеркал с сохранением в файл:
+```bash
+sudo reflector --verbose --country 'DE','NL','SE','FI' --latest 15 --sort rate --protocol https --save /etc/pacman.d/mirrorlist
+```
 # VS Code
 ## GDB Terminal error
 Issue: warning: GDB: Failed to set controlling terminal: Operation not permitted
