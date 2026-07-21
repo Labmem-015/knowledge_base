@@ -77,6 +77,23 @@ resolvectl status
 ```
 
 ---
+# IPv6 Linux
+## Temporary disable ipv6
+```bash
+sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
+sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=1
+```
+## Permanently disable ipv6
+Файл: `/etc/sysctl.d/99-disable-ipv6.conf`
+```
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6 = 1
+```
+Принять изменения: `sudo sysctl --system`
+
+---
 # HTTPS
 HTTPS - это безопасная версия протокола передачи данных HTTP, которая применяет криптографические протоколы SSL и TLS.
 TLS (Transport Layer Security) - новый криптографический протокол, исправивший уязвимости SSL. На данный момент существуют версии tls1.2 и tls1.3, остальные устаревшие версии блокируются как ненадёжные.
