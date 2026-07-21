@@ -3,6 +3,16 @@
 ```bash
 sudo reflector --verbose --country 'DE','NL','SE','FI' --latest 15 --sort rate --protocol https --save /etc/pacman.d/mirrorlist
 ```
+# Traffic redirect
+The `net.ipv4.ip_forward` parameter is a Linux kernel sysctl variable that controls whether your system routes network packets between different network interfaces.
+Check:
+```bash
+sysctl net.ipv4.ip_forward
+```
+Change:
+```bash
+sysctl -w net.ipv4.ip_forward=1
+```
 # VS Code
 ## GDB Terminal error
 Issue: warning: GDB: Failed to set controlling terminal: Operation not permitted
