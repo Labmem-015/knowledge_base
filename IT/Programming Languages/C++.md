@@ -472,6 +472,29 @@ Registry - это реестр пакетов. Baseline - это хэш комм
 vcpkg x-update-baseline --add-initial-baseline
 ```
 Он вернёт актуальный хэш ревизии реестра, а опция `--add-initial-baseline` добавит этот хэш в `vcpkg.json` по ключу `builin-baseline`.
+
+## Конкретные версии
+Нужно использовать `override` для указания версий. Например:
+```json
+{
+  "name": "my-project",
+  "version": "1.0.0",
+  "dependencies": [
+    "zlib",
+    "fmt"
+  ],
+  "overrides": [
+    { "name": "zlib", "version": "1.2.8" },
+    { "name": "fmt", "version": "10.1.1" }
+  ],
+  "builtin-baseline": "3426db05b996481ca31e95fff3734cf23e0f51bc"
+}
+```
+Для получения builtin-baseline репозитория vcpkg:
+```bash
+git rev-parse HEAD
+```
+
 ## Интеграция с CMake
 Интегрируем через toolchain:
 `CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake`
