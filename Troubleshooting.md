@@ -3,6 +3,16 @@
 ```bash
 sudo reflector --verbose --country 'DE','NL','SE','FI' --latest 15 --sort rate --protocol https --save /etc/pacman.d/mirrorlist
 ```
+# Change MTU
+## Windows
+See MTU values:
+```powershell
+netsh interface ipv4 show subinterfaces
+```
+Set mtu for specific interface:
+```
+netsh interface ipv4 set subinterface "<iface_name>" mtu=<value> store=persistent
+```
 # Traffic redirect
 The `net.ipv4.ip_forward` parameter is a Linux kernel sysctl variable that controls whether your system routes network packets between different network interfaces.
 Check:
