@@ -18,14 +18,18 @@ Create a file (for example `.gitconfig-repos`) and write configs:
 [user]
 	name = <Name>
 	email = <Email>
+
+[core]
+	autocrlf = false
+	eol = lf
 ```
-Then you can include this config in **global configs** (for example `.gitconfig-repos` instead of `<config_path>`):
+Then you can include this config in **global configs** file (for example `.gitconfig-repos` instead of `<config_path>`):
 ```ini
 [includeIf "gitdir/i:<dir_path>/"]
         path = <config_path>
 ```
 You must add `/` after `<dir_path>`.
-# Git global config example
+# Git global config final example
 ```ini
 [user]
         name = <Name>
