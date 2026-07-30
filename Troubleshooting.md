@@ -39,3 +39,27 @@ Or simply restart the system maybe?
 - Open the Start menu, type **Graphics Settings**, and press Enter.
 - Click **Browse** and locate your Obsidian executable (typically found at `C:\Users\YOUR_USERNAME\AppData\Local\Obsidian\Obsidian.exe`).
 - Once added, click on Obsidian, select **Options**, and set it to use your **High Performance GPU** (NVIDIA or AMD).
+# NeoVim
+## Autocompletion nvim-cmp в Windows terminal
+Нужно вставить эти конфиги в `actions` или в `keybindings`:
+```json
+{
+    "command": 
+    {
+        "action": "sendInput",
+        "input": "\u001b[32;5u"
+    },
+    "keys": "ctrl+space"
+}
+```
+У меня это было преобразовано в:
+```json
+{
+	"command": 
+	{
+		"action": "sendInput",
+		"input": "\u001b[32;5u"
+	},
+	"id": "User.sendInput.E116B028"
+}
+```
