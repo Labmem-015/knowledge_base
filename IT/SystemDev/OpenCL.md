@@ -45,3 +45,44 @@ Computing unit состоит из:
 - **`__local`**: Pointers to shared memory within a work-group.
 - **`__private`**: Pointers to thread-specific registers.
 - **`__constant`**: Pointers to read-only global memory.
+# Указание размера Work Group
+To calculate the work-group sizes for an OpenCL kernel program, you must ==balance **hardware limitations** with **mathematical padding** to match your overall data set size==.
+1. Query Hardware Limits
+You cannot pass arbitrary sizes to the OpenCL runtime. First, check your physical hardware limits and kernel constraints programmatically via the Host API:
+- **Device Maximum limit**: Retrieve `CL_DEVICE_MAX_WORK_GROUP_SIZE` to find the absolute maximum number of execution threads permitted in a single work-group by the hardware.
+- **Kernel Compilation limit**: Retrieve `CL_KERNEL_WORK_GROUP_SIZE` using `clGetKernelWorkGroupInfo`. This value depends on register and local memory usage within your specific compiled kernel and is often smaller than the device maximum.
+- **Preferred Multiple**: Query `CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE` to find the hardware's native processing chunk size (e.g., Warp size of 32 on NVIDIA or Wavefront size of 64 on AMD).
+
+2. Determine Local Work Size (Threads per Group)
+
+For maximum efficiency, your local work size should be a multiple of the preferred hardware size and must not exceed the kernel limit.
+- **General Rule**: A local size of **64, 128, or 256** threads is usually the sweet spot for modern GPUs.
+- **Multidimensional Layouts**: If working with a 2D matrix, break your local dimensions down so their product fits the limit. For example, a 16 × 16 grid equals 256 total local items.
+3. Calculate Global Work Size (Total Threads)
+OpenCL requires that the total `global_work_size` must be **exactly divisible** by the `local_work_size` for every dimension. If your dataset size does not perfectly divide by your chosen local size, you must pad the global size upward to the nearest multiple using the ceiling function. 
+
+For each dimension i:  
+```
+\(\text{global\_size}[i]=\left\lceil \frac{\text{dataset\_size}[i]}{\text{local\_size}[i]}\right\rceil \times \text{local\_size}[i]\)
+```
+
+4. Implement Out-of-Bounds Guards
+Because padding increases the global work size, your kernel will generate extra "dummy" threads that extend beyond your actual dataset boundary. To prevent memory corruption or crashes, you must add a boundary check at the very beginning of your kernel execution:
+
+```c
+__kernel void my_kernel(__global float* data, int dataset_size) {
+    int gid = get_global_id(0);
+    
+    // Boundary check guard
+    if (gid >= dataset_size) {
+        return; 
+    }
+    
+    // Safe to process data below
+    data[gid] *= 2.0f;
+}
+```
+
+Используйте код с осторожностью.
+5. Automation Option
+If optimization is not critical for your current development phase, you can pass `NULL` (or `nullptr`) to the `local_work_size` parameter inside `clEnqueueNDRangeKernel`. The OpenCL driver implementation will automatically calculate and assign a legal, reasonably optimized local work-group configuration for your device.
