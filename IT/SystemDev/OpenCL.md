@@ -39,3 +39,9 @@ Computing unit состоит из:
 - Local/Shared memory
 - Регистры
 - Control Logic (менеджер, который говорит ядрам, какую инструкцию выполнять)
+# Квалификаторы указателей в kernel коде
+Внутри OpenCL C kernel коде указатели должны быть явно квалифицированы регионом памяти. Указатель не может существовать без знания того, куда он указывает.
+- **`__global`**: Pointers to the main GPU memory (visible to all threads).
+- **`__local`**: Pointers to shared memory within a work-group.
+- **`__private`**: Pointers to thread-specific registers.
+- **`__constant`**: Pointers to read-only global memory.
