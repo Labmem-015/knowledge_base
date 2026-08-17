@@ -72,6 +72,17 @@ msvcmon.exe /installed /nofirewallwarn /timeout 86400 /noauth /anyuser /nosecuri
 ssh -nN -L localhost:4026:remotehost:4026 user@ssh-host
 ```
 
+# System journal linux
+Посмотреть используемое пространство:
+```bash
+journalctl --disk-usage
+```
+Задать лимит:
+```bash
+sudo journalctl --vacuum-size=500M
+```
+
+---
 # PowerShell
 ## Git mv `*.cpp`
 ```powershell
