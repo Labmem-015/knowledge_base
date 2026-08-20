@@ -35,8 +35,14 @@ pyenv version
 pyenv local <py_version>
 # Then create venv
 python -m venv <venv_name>
-##################
-# Via pyenv-virtualenv plugin
+```
+Вариант использования `virtualenv` (нужно протестировать):
+```bash
+pyenv local <py_version>
+virtualenv <venv_name>
+```
+Вариант через `pyenv-virtualenv` плагин (нужно протестировать):
+```bash
 yay -S pyenv-virtualenv
 # Configuring pyenv-virtualenv
 echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc
